@@ -21,7 +21,7 @@ public class Member {
 //    @NotEmpty
     private String name;
 
-    @JsonIgnore
+//    @JsonIgnore
     @Embedded
     private Address address;
 

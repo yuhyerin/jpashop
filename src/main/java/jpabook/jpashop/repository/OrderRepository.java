@@ -111,10 +111,26 @@ public class OrderRepository {
                 Order.class).getResultList();
     }
 
-//    public List<OrderSimpleQueryDto> findOrderDtos(){
-//        return em.createQuery("select new jpabook.jpashop.repository.OrderSimpleQueryDto(o.id, m.name, o.orderDate, o.status, d.address)"+
-//                " from Order o" +
-//                " join o.member m"+
-//                " join o.delivery d", OrderSimpleQueryDto.class).getResultList();
-//    }
+    public List<Order> findAllWithItem(){
+        return em.createQuery(
+                "select distinct o from Order o"+
+                        " join fetch o.member m"+
+                        " join fetch o.delivery d" +
+                        " join fetch o.orderItems oi" +
+                        " join fetch oi.item", Order.class
+        )
+//                .setFirstResult(1) // 컬렉션 페치 조인을 사용하면 페이징 적용 안됨.
+//                .setMaxResults(100)
+                .getResultList();
+    }
+
+    public List<Order> findAllWithMemberDelivery(int offset, int limit) {
+        return em.createQuery("select o from Order o"+
+                        " join fetch o.member m" +
+                        " join fetch o.delivery d",
+                Order.class)
+                .setFirstResult(offset)
+                .setMaxResults(limit)
+                .getResultList();
+    }
 }
