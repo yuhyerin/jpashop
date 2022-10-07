@@ -1,22 +1,34 @@
 package jpabook.jpashop.repository;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQueryFactory;
 import jpabook.jpashop.domain.Order;
-import jpabook.jpashop.repository.order.simplequery.OrderSimpleQueryDto;
+import jpabook.jpashop.domain.OrderStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 
+import javax.persistence.Entity;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static jpabook.jpashop.domain.QMember.*;
+import static jpabook.jpashop.domain.QOrder.*;
+
 @Repository
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 public class OrderRepository {
 
     private final EntityManager em;
+    private final JPAQueryFactory query;
+
+    public OrderRepository(EntityManager em){
+        this.em = em;
+        this.query = new JPAQueryFactory(em);
+    }
 
     public void save(Order order){
         em.persist(order);
@@ -28,13 +40,43 @@ public class OrderRepository {
 
     public List<Order> findAll(OrderSearch orderSearch){
         // 동적 쿼리를 어떻게 처리할 것인가?
-        return em.createQuery("select o from Order o join o.member m where o.status = :status and m.name like :name",
-                Order.class)
-                .setParameter("status", orderSearch.getOrderStatus())
-                .setParameter("name", orderSearch.getMemberName())
-                .setMaxResults(1000) // 최대 1000건
-                .getResultList();
+//        return em.createQuery("select o from Order o join o.member m where o.status = :status and m.name like :name",
+//                Order.class)
+//                .setParameter("status", orderSearch.getOrderStatus())
+//                .setParameter("name", orderSearch.getMemberName())
+//                .setMaxResults(1000) // 최대 1000건
+//                .getResultList();
+
+        // QueryDSL
+        // static import로 코드를 줄일 수 있다.
+//        QOrder order = QOrder.order;
+//        QMember member = QMember.member;
+//        JPAQueryFactory query = new JPAQueryFactory(em);
+
+        // 아래가 JPQL로 변경되서 나간다.
+        return query.select(order)
+                .from(order)
+                .join(order.member, member)
+                .where(statusEq(orderSearch.getOrderStatus()), nameLike(orderSearch.getMemberName())) // and 조건
+                .limit(1000)
+                .fetch();
     }
+
+    private BooleanExpression statusEq(OrderStatus statusCond){
+        if(statusCond == null){
+            return null;
+        }
+        return order.status.eq(statusCond);
+    }
+
+    private BooleanExpression nameLike(String memberName){
+        if(!StringUtils.hasText(memberName)){
+            return null;
+        }
+        return member.name.like(memberName);
+    }
+
+
 
     public List<Order> findAllByString(OrderSearch orderSearch) {
 
